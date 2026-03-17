@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinanceIQ — Budget Simulator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:#f5f5f3;color:#1a1a1a;padding:1.5rem;font-size:14px}
+    .app{max-width:960px;margin:0 auto}
+    .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px}
+    .top-bar h1{font-size:20px;font-weight:500}
+    .month-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+    .tab{padding:5px 14px;border-radius:999px;border:1px solid #ddd;background:transparent;color:#666;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s}
+    .tab.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+    .tab-add{padding:5px 12px;border-radius:999px;border:1px dashed #ccc;background:transparent;color:#888;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif}
+    .grid{display:grid;grid-template-columns:400px 1fr;gap:12px}
+    .card{background:#fff;border:1px solid #eee;border-radius:12px;padding:1.25rem}
+    .card-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.6px;color:#888;margin-bottom:1rem}
+    .income-wrap{display:flex;align-items:center;gap:8px;background:#f5f5f3;border-radius:8px;padding:10px 14px;margin-bottom:16px}
+    .income-wrap .prefix{font-size:20px;font-weight:500;font-family:'DM Mono',monospace;color:#888}
+    .income-wrap input{flex:1;background:transparent;border:none;outline:none;font-size:20px;font-weight:500;font-family:'DM Mono',monospace;color:#1a1a1a;width:100%}
+    .section-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.6px;color:#aaa;margin:0 0 10px}
+    .exp-entry{display:grid;grid-template-columns:auto 1fr auto;margin-bottom:8px;border:1px solid #eee;border-radius:8px;overflow:hidden;transition:border-color 0.15s}
+    .exp-entry:focus-within{border-color:#aaa}
+    .exp-cat-pill{display:flex;align-items:center;padding:0 10px;background:#f9f9f9;border-right:1px solid #eee;cursor:pointer;position:relative;gap:6px}
+    .cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .cat-label{font-size:11px;color:#888;white-space:nowrap}
+    .cat-select{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+    .exp-fields{display:flex;flex-direction:column;min-width:0}
+    .exp-name-input{border:none;outline:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:#1a1a1a;padding:8px 12px 3px;background:transparent;width:100%}
+    .exp-name-input::placeholder{color:#ccc;font-weight:400}
+    .exp-amt-row{display:flex;align-items:center;padding:2px 12px 8px;gap:3px}
+    .exp-dollar{font-family:'DM Mono',monospace;font-size:12px;color:#aaa}
+    .exp-amt-input{border:none;outline:none;font-family:'DM Mono',monospace;font-size:12px;color:#888;background:transparent;width:100%;min-width:0}
+    .exp-amt-input::placeholder{color:#ccc}
+    .exp-remove{display:flex;align-items:center;justify-content:center;padding:0 10px;background:transparent;border:none;color:#ccc;cursor:pointer;font-size:18px;border-left:1px solid #eee;transition:background 0.15s}
+    .exp-remove:hover{background:#fef2f2;color:#e24b4a}
+    .add-exp-btn{width:100%;padding:9px;border:1px dashed #ddd;border-radius:8px;background:transparent;color:#888;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:4px}
+    .add-exp-btn:hover{background:#f9f9f9}
+    .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+    .metric{background:#f5f5f3;border-radius:8px;padding:10px 14px}
+    .metric-label{font-size:11px;color:#888;margin-bottom:3px}
+    .metric-value{font-size:20px;font-weight:500;font-family:'DM Mono',monospace}
+    .pos{color:#1D9E75} .neg{color:#e24b4a}
+    .rule-row{margin-bottom:12px}
+    .rule-header{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+    .bar-track{background:#f0f0f0;border-radius:999px;height:7px;overflow:hidden}
+    .bar-fill{height:100%;border-radius:999px;transition:width 0.5s ease}
+    .grade-box{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:8px;border:1px solid #eee;margin-bottom:14px}
+    .grade-letter{font-size:36px;font-weight:500;font-family:'DM Mono',monospace;line-height:1;min-width:32px}
+    .chart-wrap{position:relative;height:160px;margin-bottom:4px}
+    .chart-wrap-tall{position:relative;height:200px;margin-top:8px}
+
+    /* VOO Section */
+    .invest-card{background:#fff;border:1px solid #eee;border-radius:12px;padding:1.25rem;margin-top:12px}
+    .invest-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;flex-wrap:wrap;gap:12px}
+    .invest-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.6px;color:#888}
+    .invest-subtitle{font-size:12px;color:#888;margin-top:3px;line-height:1.5;max-width:400px}
+    .voo-price-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+    .voo-ticker{font-size:11px;color:#888;font-family:'DM Mono',monospace}
+    .voo-price{font-size:24px;font-weight:500;font-family:'DM Mono',monospace}
+    .voo-change{font-size:12px;font-family:'DM Mono',monospace}
+    .voo-meta{font-size:11px;color:#aaa;margin-top:1px}
+    .voo-source{font-size:10px;color:#aaa;font-family:'DM Mono',monospace;margin-top:2px}
+    .invest-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1rem}
+    .invest-stat{background:#f5f5f3;border-radius:8px;padding:10px 12px}
+    .invest-stat-label{font-size:11px;color:#888;margin-bottom:3px}
+    .invest-stat-value{font-size:15px;font-weight:500;font-family:'DM Mono',monospace}
+    .invest-divider{border:none;border-top:1px solid #eee;margin:1rem 0}
+    .calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+    .calc-field label{font-size:11px;color:#888;display:block;margin-bottom:4px}
+    .calc-input-wrap{display:flex;align-items:center;gap:4px;background:#f5f5f3;border-radius:8px;padding:7px 10px}
+    .calc-prefix{font-size:13px;color:#888;font-family:'DM Mono',monospace}
+    .calc-input-wrap input{background:transparent;border:none;outline:none;font-family:'DM Mono',monospace;font-size:13px;color:#1a1a1a;width:100%}
+    .projection-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .proj-item{background:#f5f5f3;border-radius:8px;padding:10px 12px;text-align:center}
+    .proj-year{font-size:11px;color:#888;margin-bottom:4px}
+    .proj-val{font-size:14px;font-weight:500;font-family:'DM Mono',monospace;color:#1D9E75}
+    .shares-note{font-size:11px;color:#888;margin-top:10px;line-height:1.6}
+    .disclaimer{font-size:10px;color:#bbb;margin-top:10px;line-height:1.5;border-top:1px solid #eee;padding-top:8px}
+    .loading-pulse{opacity:0.4;animation:pulse 1.2s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
+    .mom-section{margin-top:12px}
+
+    @media(max-width:700px){
+      .grid{grid-template-columns:1fr}
+      .invest-grid{grid-template-columns:1fr 1fr}
+      .projection-row{grid-template-columns:1fr 1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <h1>FinanceIQ</h1>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <div class="month-tabs" id="month-tabs"></div>
+      <button class="tab-add" onclick="addMonth()">+ month</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">Your budget</div>
+      <div class="section-label" style="margin-bottom:6px">Monthly income (after tax)</div>
+      <div class="income-wrap">
+        <span class="prefix">$</span>
+        <input type="number" id="income-input" placeholder="0" step="1" oninput="update()" />
+      </div>
+      <div class="section-label">Expenses</div>
+      <div id="expense-rows"></div>
+      <button class="add-exp-btn" onclick="addExpense()">+ add expense</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card">
+        <div class="card-title">Summary</div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Income</div><div class="metric-value" id="s-income">$0</div></div>
+          <div class="metric"><div class="metric-label">Total expenses</div><div class="metric-value" id="s-expenses">$0</div></div>
+          <div class="metric"><div class="metric-label">Remaining</div><div class="metric-value" id="s-remaining">$0</div></div>
+          <div class="metric"><div class="metric-label">Savings rate</div><div class="metric-value" id="s-rate">0%</div></div>
+        </div>
+        <div class="chart-wrap"><canvas id="breakdown-chart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">50/30/20 rule checker</div>
+        <div class="grade-box">
+          <div class="grade-letter" id="grade-letter">—</div>
+          <div>
+            <div style="font-size:14px;font-weight:500;margin-bottom:3px" id="grade-headline">Enter your budget</div>
+            <div style="font-size:12px;color:#888;line-height:1.5" id="grade-sub">Add income and expenses to see your grade</div>
+          </div>
+        </div>
+        <div id="rule-bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOO Invest Section -->
+  <div class="invest-card">
+    <div class="invest-header">
+      <div>
+        <div class="invest-title">Consider investing — VOO (Vanguard S&P 500 ETF)</div>
+        <div class="invest-subtitle">One of the lowest-cost ways to invest in the entire S&P 500. 0.03% expense ratio. Put your surplus to work.</div>
+      </div>
+      <div class="voo-price-wrap" id="voo-price-wrap">
+        <span class="voo-ticker">VOO · NYSE Arca</span>
+        <span class="voo-price loading-pulse" id="voo-price">$—</span>
+        <span class="voo-change" id="voo-change">fetching live price...</span>
+        <span class="voo-meta">0.03% expense ratio · ~1.1% dividend yield</span>
+        <span class="voo-source" id="voo-source"></span>
+      </div>
+    </div>
+
+    <div class="invest-grid">
+      <div class="invest-stat">
+        <div class="invest-stat-label">52-week high</div>
+        <div class="invest-stat-value">$641.81</div>
+      </div>
+      <div class="invest-stat">
+        <div class="invest-stat-label">52-week low</div>
+        <div class="invest-stat-value">$442.80</div>
+      </div>
+      <div class="invest-stat">
+        <div class="invest-stat-label">Avg annual return</div>
+        <div class="invest-stat-value pos">~10%</div>
+      </div>
+    </div>
+
+    <hr class="invest-divider" />
+    <div style="font-size:12px;font-weight:500;margin-bottom:10px">If you invested your monthly surplus...</div>
+    <div class="calc-grid">
+      <div class="calc-field">
+        <label>Monthly investment amount</label>
+        <div class="calc-input-wrap">
+          <span class="calc-prefix">$</span>
+          <input type="number" id="invest-amt" placeholder="0" step="1" oninput="calcProjection()" />
+        </div>
+      </div>
+      <div class="calc-field">
+        <label>Assumed annual return</label>
+        <div class="calc-input-wrap">
+          <input type="number" id="invest-rate" value="10" step="0.5" oninput="calcProjection()" />
+          <span class="calc-prefix">%</span>
+        </div>
+      </div>
+    </div>
+    <div class="projection-row" id="projection-row"></div>
+    <div class="shares-note" id="shares-note"></div>
+    <div class="disclaimer">Not financial advice. Past performance does not guarantee future results. The S&P 500 historical average is ~10%/year before inflation. Always do your own research.</div>
+  </div>
+
+  <div class="card mom-section" id="mom-card" style="display:none">
+    <div class="card-title">Month-over-month comparison</div>
+    <div class="chart-wrap-tall"><canvas id="mom-chart"></canvas></div>
+  </div>
+</div>
+
+<script>
+// ─── Config ───────────────────────────────────────────────────────────────────
+// This points to our Express backend running locally.
+// When you deploy, change this to your live server URL e.g. https://financeiq.onrender.com
+const API_BASE = "http://localhost:3001";
+
+const CATEGORIES = ["Needs","Wants","Savings","Other"];
+const CAT_COLORS = {Needs:"#378ADD",Wants:"#EF9F27",Savings:"#1D9E75",Other:"#888780"};
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+let months = [{
+  name:"Mar 2026", income:3200,
+  expenses:[
+    {name:"Rent",cat:"Needs",amt:1200},
+    {name:"Groceries",cat:"Needs",amt:280},
+    {name:"Netflix",cat:"Wants",amt:18},
+    {name:"Gym",cat:"Wants",amt:45},
+    {name:"Savings transfer",cat:"Savings",amt:400},
+  ]
+}];
+let activeMonth = 0;
+let breakdownChart = null, momChart = null;
+let vooPrice = null;
+
+// ─── Fetch VOO price from our backend ────────────────────────────────────────
+// This calls our Express server which handles the Yahoo Finance fetch + SQLite caching
+async function fetchVOO() {
+  try {
+    const res = await fetch(`${API_BASE}/api/quote/VOO`);
+    if (!res.ok) throw new Error("Server error");
+    const data = await res.json();
+
+    vooPrice = data.price;
+
+    const priceEl = document.getElementById("voo-price");
+    const changeEl = document.getElementById("voo-change");
+    const sourceEl = document.getElementById("voo-source");
+
+    priceEl.textContent = "$" + data.price.toFixed(2);
+    priceEl.classList.remove("loading-pulse");
+
+    const sign = data.change >= 0 ? "+" : "";
+    changeEl.textContent = `${sign}$${data.change.toFixed(2)} (${sign}${data.changePercent.toFixed(2)}%) today`;
+    changeEl.style.color = data.change >= 0 ? "#1D9E75" : "#e24b4a";
+
+    // Show whether this came from live fetch or cache — good for debugging
+    sourceEl.textContent = data.source === "cache" ? "cached · updates every 5 min" : "live · just fetched";
+
+    calcProjection();
+  } catch (err) {
+    document.getElementById("voo-change").textContent = "Could not reach server — is it running?";
+    document.getElementById("voo-change").style.color = "#e24b4a";
+    console.error("VOO fetch error:", err);
+  }
+}
+
+// ─── Budget logic ─────────────────────────────────────────────────────────────
+function getM(){ return months[activeMonth]; }
+
+function renderTabs(){
+  document.getElementById("month-tabs").innerHTML = months.map((m,i) =>
+    `<button class="tab ${i===activeMonth?"active":""}" onclick="switchMonth(${i})">${m.name}</button>`
+  ).join("");
+}
+
+function switchMonth(i){ saveInputs(); activeMonth=i; loadInputs(); renderTabs(); update(); }
+
+function addMonth(){
+  saveInputs();
+  const now = new Date();
+  const idx = (now.getMonth() + months.length) % 12;
+  months.push({name:MONTH_NAMES[idx]+" "+now.getFullYear(), income:0, expenses:[]});
+  activeMonth = months.length-1;
+  loadInputs(); renderTabs(); update();
+}
+
+function saveInputs(){
+  const m = getM();
+  m.income = parseFloat(document.getElementById("income-input").value)||0;
+  m.expenses = collectExpenses();
+}
+
+function collectExpenses(){
+  return Array.from(document.querySelectorAll(".exp-entry")).map(r=>({
+    name: r.querySelector(".exp-name-input").value,
+    cat:  r.querySelector(".cat-select").value,
+    amt:  parseFloat(r.querySelector(".exp-amt-input").value)||0
+  })).filter(e=>e.amt>0||e.name.trim());
+}
+
+function loadInputs(){
+  const m = getM();
+  document.getElementById("income-input").value = m.income||"";
+  document.getElementById("expense-rows").innerHTML = "";
+  m.expenses.forEach(e=>appendExpenseRow(e));
+}
+
+function appendExpenseRow(e={name:"",cat:"Needs",amt:""}){
+  const el = document.getElementById("expense-rows");
+  const div = document.createElement("div");
+  div.className = "exp-entry";
+  div.innerHTML = `
+    <div class="exp-cat-pill">
+      <div class="cat-dot" style="background:${CAT_COLORS[e.cat]||CAT_COLORS.Needs}"></div>
+      <span class="cat-label">${e.cat}</span>
+      <select class="cat-select" onchange="onCatChange(this)">
+        ${CATEGORIES.map(c=>`<option value="${c}" ${c===e.cat?"selected":""}>${c}</option>`).join("")}
+      </select>
+    </div>
+    <div class="exp-fields">
+      <input class="exp-name-input" type="text" placeholder="Expense name" value="${e.name}" oninput="update()" />
+      <div class="exp-amt-row">
+        <span class="exp-dollar">$</span>
+        <input class="exp-amt-input" type="number" placeholder="0.00" step="1" value="${e.amt||""}" oninput="update()" />
+      </div>
+    </div>
+    <button class="exp-remove" onclick="this.parentElement.remove();update()">×</button>
+  `;
+  el.appendChild(div);
+}
+
+function onCatChange(sel){
+  const entry = sel.closest(".exp-entry");
+  entry.querySelector(".cat-dot").style.background = CAT_COLORS[sel.value];
+  entry.querySelector(".cat-label").textContent = sel.value;
+  update();
+}
+
+function addExpense(){ appendExpenseRow(); }
+
+function update(){
+  const m = getM();
+  m.income = parseFloat(document.getElementById("income-input").value)||0;
+  m.expenses = collectExpenses();
+  const income = m.income;
+  const totalExp = m.expenses.reduce((s,e)=>s+e.amt,0);
+  const remaining = income - totalExp;
+  const savingsRate = income>0 ? Math.round((remaining/income)*100) : 0;
+
+  document.getElementById("s-income").textContent = "$"+income.toLocaleString();
+  document.getElementById("s-expenses").textContent = "$"+totalExp.toLocaleString();
+  const remEl = document.getElementById("s-remaining");
+  remEl.textContent = (remaining>=0?"+$":"-$")+Math.abs(remaining).toLocaleString();
+  remEl.className = "metric-value "+(remaining>=0?"pos":"neg");
+  const rateEl = document.getElementById("s-rate");
+  rateEl.textContent = savingsRate+"%";
+  rateEl.className = "metric-value "+(savingsRate>=20?"pos":savingsRate>=10?"":"neg");
+
+  updateBreakdown(m.expenses, income);
+  update5030(m.expenses, income);
+  updateMoM();
+
+  // Auto-fill surplus into invest calculator
+  const surplus = Math.max(remaining, 0);
+  const investInput = document.getElementById("invest-amt");
+  if (!investInput.dataset.userEdited) investInput.value = surplus>0 ? Math.round(surplus) : "";
+  calcProjection();
+}
+
+function calcProjection(){
+  document.getElementById("invest-amt").dataset.userEdited = "true";
+  const amt = parseFloat(document.getElementById("invest-amt").value)||0;
+  const rate = parseFloat(document.getElementById("invest-rate").value)||10;
+  const monthly = rate/100/12;
+  const years = [1,5,10,20];
+  const row = document.getElementById("projection-row");
+  const note = document.getElementById("shares-note");
+
+  if(amt<=0){
+    row.innerHTML = `<div style="font-size:12px;color:#aaa;grid-column:span 4;padding:8px 0">Enter an amount above to see projections</div>`;
+    note.textContent = ""; return;
+  }
+
+  row.innerHTML = years.map(y=>{
+    const fv = amt * ((Math.pow(1+monthly, y*12)-1)/monthly);
+    return `<div class="proj-item">
+      <div class="proj-year">${y} yr${y>1?"s":""}</div>
+      <div class="proj-val">$${Math.round(fv).toLocaleString()}</div>
+    </div>`;
+  }).join("");
+
+  if(vooPrice){
+    const shares = amt/vooPrice;
+    const sharesText = shares>=1
+      ? `$${amt.toLocaleString()} buys ~${shares.toFixed(2)} shares of VOO at today's price of $${vooPrice.toFixed(2)}.`
+      : `$${amt.toLocaleString()} gets you ~${(shares*100).toFixed(1)}% of a VOO share — many brokers support fractional shares.`;
+    note.textContent = sharesText + ` Projections assume ${rate}% annual return, compounded monthly.`;
+  }
+}
+
+function updateBreakdown(expenses, income){
+  const ctx = document.getElementById("breakdown-chart").getContext("2d");
+  const totals = {}; CATEGORIES.forEach(c=>totals[c]=0);
+  expenses.forEach(e=>{totals[e.cat]=(totals[e.cat]||0)+e.amt});
+  const totalExp = Object.values(totals).reduce((a,b)=>a+b,0);
+  const rem = Math.max(income-totalExp,0);
+  const labels = [...CATEGORIES.filter(c=>totals[c]>0),...(rem>0?["Unallocated"]:[])];
+  const data   = [...CATEGORIES.filter(c=>totals[c]>0).map(c=>totals[c]),...(rem>0?[rem]:[])];
+  const colors = [...CATEGORIES.filter(c=>totals[c]>0).map(c=>CAT_COLORS[c]),...(rem>0?["#C0DD97"]:[])];
+  if(breakdownChart) breakdownChart.destroy();
+  breakdownChart = new Chart(ctx,{type:"doughnut",data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:"68%",plugins:{legend:{position:"right",labels:{font:{family:"Inter",size:11},boxWidth:10,padding:10}},tooltip:{callbacks:{label:ctx=>" $"+ctx.parsed.toLocaleString()+(income>0?" ("+Math.round(ctx.parsed/income*100)+"%)":[])}}}}});
+}
+
+function update5030(expenses, income){
+  const barsEl=document.getElementById("rule-bars"),gradeEl=document.getElementById("grade-letter"),headEl=document.getElementById("grade-headline"),subEl=document.getElementById("grade-sub");
+  if(income<=0){barsEl.innerHTML="";gradeEl.textContent="—";headEl.textContent="Enter your income";subEl.textContent="Add income and expenses above";return;}
+  const needsAmt=expenses.filter(e=>e.cat==="Needs").reduce((s,e)=>s+e.amt,0);
+  const wantsAmt=expenses.filter(e=>e.cat==="Wants").reduce((s,e)=>s+e.amt,0);
+  const savingsAmt=expenses.filter(e=>e.cat==="Savings").reduce((s,e)=>s+e.amt,0);
+  const totalExp=expenses.reduce((s,e)=>s+e.amt,0);
+  const effectiveSavings=savingsAmt+Math.max(income-totalExp,0);
+  const needsPct=Math.round(needsAmt/income*100),wantsPct=Math.round(wantsAmt/income*100),savingsPct=Math.round(effectiveSavings/income*100);
+  const rules=[
+    {label:"Needs",actual:needsPct,amt:needsAmt,pass:needsPct<=50,color:"#378ADD",desc:"≤ 50% on needs",targetPct:0.5},
+    {label:"Wants",actual:wantsPct,amt:wantsAmt,pass:wantsPct<=30,color:"#EF9F27",desc:"≤ 30% on wants",targetPct:0.3},
+    {label:"Savings",actual:savingsPct,amt:effectiveSavings,pass:savingsPct>=20,color:"#1D9E75",desc:"≥ 20% saved",targetPct:0.2},
+  ];
+  barsEl.innerHTML=rules.map(r=>`
+    <div class="rule-row">
+      <div class="rule-header">
+        <span style="font-weight:500">${r.label} <span style="color:#aaa;font-weight:400">${r.desc}</span></span>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:${r.pass?"#1D9E75":"#e24b4a"}">${r.actual}% ${r.pass?"✓":"✗"}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.min(r.actual,100)}%;background:${r.pass?r.color:"#e24b4a"}"></div></div>
+      <div style="font-size:11px;color:#aaa;margin-top:3px;font-family:'DM Mono',monospace">$${r.amt.toLocaleString()} of $${Math.round(income*r.targetPct).toLocaleString()} target</div>
+    </div>`).join("");
+  const passing=rules.filter(r=>r.pass).length;
+  const grades=["C","B","B+","A"],gradeColors=["#e24b4a","#EF9F27","#378ADD","#1D9E75"];
+  const headlines=["Needs work","On the right track","Almost there!","Budget looks great"];
+  const subs=["Try to bring your spending in line with the 50/30/20 targets","You're passing most categories — tighten up the remaining one","Nearly perfect — small adjustments will get you an A","You're following the 50/30/20 rule — keep it up"];
+  gradeEl.textContent=grades[passing];gradeEl.style.color=gradeColors[passing];
+  headEl.textContent=headlines[passing];subEl.textContent=subs[passing];
+}
+
+function updateMoM(){
+  const card=document.getElementById("mom-card");
+  if(months.length<2){card.style.display="none";return;}
+  card.style.display="block";
+  const ctx=document.getElementById("mom-chart").getContext("2d");
+  const labels=months.map(m=>m.name);
+  const incomes=months.map(m=>m.income);
+  const expenses=months.map(m=>m.expenses.reduce((s,e)=>s+e.amt,0));
+  const savings=months.map((m,i)=>Math.max(incomes[i]-expenses[i],0));
+  if(momChart)momChart.destroy();
+  momChart=new Chart(ctx,{type:"bar",data:{labels,datasets:[
+    {label:"Income",data:incomes,backgroundColor:"rgba(55,138,221,0.7)",borderRadius:4},
+    {label:"Expenses",data:expenses,backgroundColor:"rgba(226,75,74,0.7)",borderRadius:4},
+    {label:"Savings",data:savings,backgroundColor:"rgba(29,158,117,0.7)",borderRadius:4},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:"Inter",size:11},boxWidth:10,padding:12}}},scales:{x:{grid:{display:false},ticks:{font:{family:"Inter",size:11}}},y:{grid:{color:"rgba(0,0,0,0.05)"},ticks:{font:{family:"DM Mono",size:11},callback:v=>"$"+v.toLocaleString()}}}}});
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+loadInputs();
+renderTabs();
+update();
+fetchVOO(); // kick off the live price fetch
+</script>
+</body>
+</html>
