@@ -1,4 +1,4 @@
-# FinanceIQ 💰
+# FinanceIQ 
 
 A personal budget simulator with live VOO/S&P 500 market data, 50/30/20 rule analysis, and compound investment projections.
 
@@ -6,7 +6,7 @@ A personal budget simulator with live VOO/S&P 500 market data, 50/30/20 rule ana
 
 - **Frontend**: HTML, CSS, JavaScript (vanilla)
 - **Backend**: Node.js + Express
-- **Database**: SQLite (via better-sqlite3) — caches stock prices for 5 minutes
+- **Database**: SQLite — caches stock prices for 5 minutes
 - **Data**: Yahoo Finance (unofficial API, no key required)
 
 ## Features
@@ -16,7 +16,7 @@ A personal budget simulator with live VOO/S&P 500 market data, 50/30/20 rule ana
 - 50/30/20 rule checker with letter grade
 - Compound investment growth projections
 - Month-over-month budget comparison chart
-- SQLite caching layer — reduces external API calls by ~95%
+- SQLite caching layer — reduces external API calls by 95%
 
 ## Architecture
 
