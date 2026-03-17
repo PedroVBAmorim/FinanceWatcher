@@ -1,4 +1,4 @@
-# FinanceIQ 
+# FinanceWatcher
 
 A personal budget simulator with live VOO/S&P 500 market data, 50/30/20 rule analysis, and compound investment projections.
 
