@@ -1,8 +1,7 @@
 // server.js — Express server
-// This is our backend proxy. The browser can't call Yahoo Finance directly
-// because of CORS (Cross-Origin Resource Sharing) — browsers block requests
-// to domains that aren't the same as the page origin.
-// So our frontend calls OUR server, and OUR server calls Yahoo Finance.
+// Backend proxy -- The browser can't call Yahoo Finance directly
+// because of CORS  browsers block requests to domains that aren't the same as the page origin.
+// Frontend calls  server, and  server calls Yahoo Finance.
 // This also lets us cache results in SQLite so we don't over-fetch.
 
 const express = require("express");
@@ -13,12 +12,11 @@ const { getCached, upsert } = require("./db");
 const app = express();
 const PORT = 3001;
 
-// cors() allows our frontend (running on a different port or domain) to call this server.
+// cors() to let our frontend call this server.
 // Without this, the browser would block the request.
 app.use(cors());
 app.use(express.json());
-
-// Health check — just so you can verify the server is running
+// check the server is running
 app.get("/", (req, res) => {
   res.json({ status: "FinanceIQ server is running" });
 });
